@@ -301,8 +301,8 @@ class EncodingNumbers extends React.Component {
 						<ScalarOverlap
 							id="continuousOverlap"
 							diagramWidth={500}
-							max={10}
-							min={0}
+							maxValue={10}
+							minValue={0}
 							w={this.state.w}
 							n={this.state.n}
 							valueA={this.state.valueA}

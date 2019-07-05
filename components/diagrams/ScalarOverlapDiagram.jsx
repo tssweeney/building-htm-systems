@@ -1,252 +1,91 @@
 import React from 'react'
-import * as d3 from 'd3'
 import PropTypes from 'prop-types'
 import simplehtm from 'simplehtm'
-import { lineFunction, precisionRound } from './helpers'
+import SVGBracketLabel from '../pureComponents/SVGBracketLabel'
+import SVGLinearCells from '../pureComponents/SVGLinearCells'
+import SVGDraggable from '../pureComponents/SVGDraggable'
 
 const ScalarEncoder = simplehtm.encoders.ScalarEncoder
-
 const offColor = 'white'
 const aColor = 'blue'
-const bColor = 'yellow'
-const bothColor = 'green'
-const outputCellsTopMargin = 0
-const sideGutter = 10
-const cellHeight = 30
-
+const bColor = 'red'
+const bothColor = 'purple'
 const debugStyle = {
 	border: 'solid red 1px'
 }
 
 class ScalarOverlap extends React.Component {
-	svgRef = React.createRef() // this will give you reference to HTML DOM element
-
-	// encoding = undefined
-	encoder = undefined
-	encodingA = undefined
-	encodingB = undefined
-	valueA = this.props.valueA
-	valueB = this.props.valueB
-
-	// handle setting up when params are set/changed
-	update() {
-		this.resetEncoder()
-		this.orientD3()
-		this.renderOutputCells()
-	}
-
-	// setup any time params change
-	componentDidUpdate(prevProps) {
-		if(prevProps.valueA != this.props.valueA) {
-			this.valueA = this.props.valueA
-		}
-		if(prevProps.valueB != this.props.valueB) {
-			this.valueB = this.props.valueB
-		}
-		this.update()
-	}
-	// setup on initial mount
-	componentDidMount() {
-		// Sets up the d3 diagram on an SVG element.
-		this.root = d3.select(`svg#${this.props.id}`)
-			.attr('width', this.props.diagramWidth)
-		this.update()
-	}
-
-	orientD3() {
-		const {
-			diagramWidth
-		} = this.props
-		const {
-			min, max
-		} = this.encoder
-		// Create D3 scales
-		this.valToScreen = d3.scaleLinear()
-			.domain([min, max])
-			.range([sideGutter, diagramWidth - sideGutter])
-		this.bitsToOutputDisplay = d3.scaleLinear()
-			.domain(this.encoder.outputRange)
-			.range([0 + sideGutter, diagramWidth - sideGutter])
-	}
-
-	resetEncoder() {
-		const {
-			bounded, min, max, resolution, n, w
-		} = this.props
-		this.encoder = new (bounded ? BoundedScalarEncoder : ScalarEncoder)({
-			min, max, resolution, w, n, bounded,
-		})
-
-		this.encodingA = this.encoder.encode(this.valueA)
-		this.encodingB = this.encoder.encode(this.valueB)
-	}
-
-	renderOutputCells() {
-		const { diagramWidth } = this.props
-
-		const g = this.root.select('.output-cells')
-		const cellWidth = Math.floor(diagramWidth / this.encoder.n)
-		const bitsToOutputDisplay = this.bitsToOutputDisplay
-
-		function treatCellRects(r) {
-			// FIXME: standardize some styles for diagrams
-			r.attr('class', 'bit')
-				.attr('fill', (d) => {
-					if (d.a > 0 && d.b > 0) return bothColor
-					if (d.a > 0) return aColor
-					if (d.b > 0) return bColor
-					else return offColor
-				})
-				.attr('stroke', 'darkgrey')
-				.attr('stroke-width', 0.5)
-				.attr('fill-opacity', 1)
-				.attr('x', function (d, i) {
-					return bitsToOutputDisplay(i)
-				})
-				.attr('y', outputCellsTopMargin)
-				.attr('width', cellWidth)
-				.attr('height', cellHeight)
-		}
-
-		const dualEncoding = this.encodingA.map((v, i) => {
-			return {a: v, b: this.encodingB[i]}
-		}, this)
-
-		// Update
-		const rects = g.selectAll('rect').data(dualEncoding)
-
-		treatCellRects(rects)
-		// Enter
-		const newRects = rects.enter().append('rect')
-		treatCellRects(newRects)
-
-		// Exit
-		rects.exit().remove()
-
-		this.drawBrackets()
-	}
-
-	drawBrackets() {
-		let me = this
-		this.drawBracket(this.valueA, 'valueA')
-		this.drawBracket(this.valueB, 'valueB')
-
-		this.root.selectAll('text')
-			.call(d3.drag()
-				.on('drag', function () {
-					const key = this.id.replace(`${me.props.id}-`, '')
-					me.props.onUpdate({
-						[key]: precisionRound(me.valToScreen.invert(d3.event.x), 1)
-					})
-				})
-			)
-	}
-
-	getRangeFromBitIndex(i, encoder) {
-		const { bounded, w, resolution, min, max } = encoder
-		const v = encoder.reverseScale(i)
-		const radius = w * resolution / 2
-		let left = Math.max(min, v - radius)
-		let right = Math.min(max, v + radius)
-
-		// Keeps the bucket from changing size at min/max values
-		if (bounded) {
-			if (left < (min + radius)) left = min
-			if (right > (max - radius)) right = max
-		}
-		return [left, right]
-	}
-
-	drawBracket(value, name) {
-		const diagramWidth = this.props.diagramWidth
-		let valueScaleTopMargin = 30
-		const cellWidth = Math.floor(diagramWidth / this.encoder.n)
-
-		let encoder = this.encoder
-		let g = this.root.select(`.${name}`)
-		let leftPath = g.select('path.left')
-		let rightPath = g.select('path.right')
-		let label = g.select('text')
-
-		let leftLineData = []
-		let rightLineData = []
-		let index = Math.floor(encoder.scale(value))
-		let w = encoder.w
-		let uiRange = [sideGutter, diagramWidth - sideGutter]
-
-		let cx = sideGutter + index * cellWidth // center x
-		let cy = cellHeight * 2.2 // center y
-
-		label.attr('x', cx)
-				.attr('y', cy + 15)
-				.html(precisionRound(value, 1))
-		
-		leftLineData.push({x: cx, y: cy})
-		rightLineData.push({ x: cx, y: cy })
-		let leftIndex = index - w/2
-		let rightIndex = index + w/2
-		let leftX = Math.max(this.bitsToOutputDisplay(leftIndex), uiRange[0])
-		let rightX = Math.min(this.bitsToOutputDisplay(rightIndex), uiRange[1])
-		// Intermediary points for curving
-		leftLineData.push({
-				x: cx - 10,
-				y: cy - 10,
-		})
-		leftLineData.push({
-				x: leftX,
-				y: valueScaleTopMargin + 10
-		})
-		rightLineData.push({
-				x: cx + 10,
-				y: cy - 10,
-		})
-		rightLineData.push({
-				x: rightX,
-				y: valueScaleTopMargin + 10
-		})
-
-		// Point on value line
-		leftLineData.push({
-				x: leftX,
-				y: valueScaleTopMargin
-		})
-		rightLineData.push({
-				x: rightX,
-				y: valueScaleTopMargin
-		})
-		leftPath
-				.attr('d', lineFunction(leftLineData))
-				.attr('stroke', 'black')
-				.attr('fill', 'none')
-		rightPath
-				.attr('d', lineFunction(rightLineData))
-				.attr('stroke', 'black')
-				.attr('fill', 'none')
-	}
+	svgRef = React.createRef()
 
 	render() {
+		const selfRef = React.createRef()
+		const {
+			minValue, maxValue, n, w, id, valueA, valueB, onUpdate
+		} = this.props
+
+		const valueADisplay = valueA.toFixed(1)
+		const valueBDisplay = valueB.toFixed(1)
+
+		const encoder = new ScalarEncoder({ min: minValue, max: maxValue, w, n })
+		const encodingA = encoder.encode(valueADisplay)
+		const encodingB = encoder.encode(valueBDisplay)
+
+		const aLeftPct = encodingA.indexOf(1) / n
+		const bLeftPct = encodingB.indexOf(1) / n
+		const aPadPct = encodingA.filter(item => item == 1).length / n
+		const bPadPct = encodingB.filter(item => item == 1).length / n
+
+		const cells = []
+		for (let i = 0; i < n; i++) {
+			cells.push(encodingA[i] + encodingB[i] * 2)
+		}
+
+		const width = this.svgRef && this.svgRef.current && this.svgRef.current.width.baseVal.value
+		const scalar = 10 / (width ? width : 500)
+
 		return (
-			<svg id={this.props.id}
+			<svg id={id}
+				ref={this.svgRef}
 				height={100}
+				width="100%"
 				ref={this.svgRef}
 				style={debugStyle}
 			>
+				<SVGLinearCells
+					height='50%'
+					cellTypes={cells}
+					fillColors={[offColor, aColor, bColor, bothColor]}
+				/>
 
-				<g className="output-cells"></g>
-
-				<g className="valueA range">
-					<path className="left"></path>
-					<path className="right"></path>
-					<text id={`${this.props.id}-valueA`}></text>
-				</g>
-
-				<g className="valueB range">
-					<path className="left"></path>
-					<path className="right"></path>
-					<text id={`${this.props.id}-valueB`}></text>
-				</g>
-
-			</svg>
+				<SVGDraggable onUpdate={(amount) => {
+					onUpdate({
+						valueA: Math.max(Math.min(valueA + amount * scalar, maxValue), minValue)
+					})
+				}}>
+					<SVGBracketLabel
+						text={`${valueADisplay}`}
+						leftPct={aLeftPct}
+						rightPct={aLeftPct + aPadPct}
+						y='50%'
+						height='50%'
+						stroke={aColor}
+					/>
+				</SVGDraggable>
+				<SVGDraggable onUpdate={(amount) => {
+					onUpdate({
+						valueB: Math.max(Math.min(valueB + amount * scalar, maxValue), minValue)
+					})
+				}}>
+					<SVGBracketLabel
+						text={`${valueBDisplay}`}
+						leftPct={bLeftPct}
+						rightPct={bLeftPct + bPadPct}
+						y='50%'
+						height='50%'
+						stroke={bColor}
+					/>
+				</SVGDraggable>
+			</svg >
 		)
 	}
 }
@@ -254,8 +93,8 @@ class ScalarOverlap extends React.Component {
 ScalarOverlap.propTypes = {
 	diagramWidth: PropTypes.number.isRequired,
 	id: PropTypes.string.isRequired,
-	max: PropTypes.number.isRequired,
-	min: PropTypes.number.isRequired,
+	maxValue: PropTypes.number.isRequired,
+	minValue: PropTypes.number.isRequired,
 	n: PropTypes.number.isRequired,
 	onUpdate: PropTypes.func,
 	valueA: PropTypes.number.isRequired,
