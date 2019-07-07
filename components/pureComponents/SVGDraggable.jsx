@@ -18,6 +18,16 @@ class SVGDraggable extends React.Component {
 		this.queueUpdate = this.queueUpdate.bind(this)
 	}
 
+	componentDidMount() {
+		document.body.addEventListener('mouseup', this.onMouseUp)
+		document.body.addEventListener('mousemove', this.onMouseMove)
+	}
+
+	componentWillUnmount() {
+		document.body.removeEventListener('mouseup', this.onMouseUp)
+		document.body.removeEventListener('mousemove', this.onMouseMove)
+	}
+
 	sendUpdate() {
 		this.props.onUpdate(this.state.amount)
 		this.setState({
@@ -63,10 +73,28 @@ class SVGDraggable extends React.Component {
 		} = this.props
 
 		return (
-			<svg onMouseDown={this.onMouseDown} onMouseUp={this.onMouseUp} onMouseMove={this.onMouseMove} pointerEvents="bounding-box">
+			<svg onMouseDown={this.onMouseDown} pointerEvents={this.props.pointerEvents || 'fill'}>
 				{children}
 			</svg>
 		)
 	}
 }
+
+SVGDraggable.propTypes = {
+	onUpdate: PropTypes.func.isRequired,
+	children: PropTypes.node.isRequired,
+	pointerEvents: PropTypes.oneOf([
+		'auto',
+		'none',
+		'visiblePainted',
+		'visibleFill',
+		'visibleStroke',
+		'visible',
+		'painted',
+		'fill',
+		'stroke',
+		'all'
+	]),
+}
+
 export default SVGDraggable

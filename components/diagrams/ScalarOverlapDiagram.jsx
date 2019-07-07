@@ -17,18 +17,48 @@ const debugStyle = {
 class ScalarOverlap extends React.Component {
 	svgRef = React.createRef()
 
-	render() {
-		const selfRef = React.createRef()
+	constructor(props) {
+		super(props)
+		this.state = {
+			lastDraggedType: 1
+		}
+
+		this.dragged = this.dragged.bind(this)
+	}
+
+	dragged(key, amount) {
+		console.log(key, amount)
 		const {
-			minValue, maxValue, n, w, id, valueA, valueB, onUpdate
+			valueA, valueB, minValue, maxValue, onUpdate
 		} = this.props
 
-		const valueADisplay = valueA.toFixed(1)
-		const valueBDisplay = valueB.toFixed(1)
+		const currVal = key === 'valueA' ? valueA : valueB
+		const width = this.svgRef && this.svgRef.current && this.svgRef.current.width.baseVal.value
+		const scalar = 10 / (width ? width : 500)
+
+		this.setState({
+			lastDraggedType: key === 'valueA' ? 1 : 2
+		})
+
+		if (onUpdate) {
+			onUpdate({
+				[key]: Math.max(Math.min(currVal + amount * scalar, maxValue), minValue)
+			})
+		}
+	}
+
+	render() {
+		const self = this
+		const {
+			minValue, maxValue, n, w, id, valueA, valueB
+		} = this.props
+
+		const aValueDisplay = valueA.toFixed(1)
+		const bValueDisplay = valueB.toFixed(1)
 
 		const encoder = new ScalarEncoder({ min: minValue, max: maxValue, w, n })
-		const encodingA = encoder.encode(valueADisplay)
-		const encodingB = encoder.encode(valueBDisplay)
+		const encodingA = encoder.encode(aValueDisplay)
+		const encodingB = encoder.encode(bValueDisplay)
 
 		const aLeftPct = encodingA.indexOf(1) / n
 		const bLeftPct = encodingB.indexOf(1) / n
@@ -40,51 +70,118 @@ class ScalarOverlap extends React.Component {
 			cells.push(encodingA[i] + encodingB[i] * 2)
 		}
 
-		const width = this.svgRef && this.svgRef.current && this.svgRef.current.width.baseVal.value
-		const scalar = 10 / (width ? width : 500)
+
+		const aConfig = {
+			stateKey: 'valueA',
+			value: valueA,
+			valueDisplay: aValueDisplay,
+			leftPct: aLeftPct,
+			padPct: aPadPct,
+			color: aColor
+		}
+
+		const bConfig = {
+			stateKey: 'valueB',
+			value: valueB,
+			valueDisplay: bValueDisplay,
+			leftPct: bLeftPct,
+			padPct: bPadPct,
+			color: bColor
+		}
+
+		const aBracket = (
+			<SVGDraggable key="aBracket" onUpdate={(amount) => {
+				this.dragged('valueA', amount)
+			}}>
+				<SVGBracketLabel
+					text={`${aConfig.valueDisplay}`}
+					leftPct={aConfig.leftPct}
+					rightPct={aConfig.leftPct + aConfig.padPct}
+					y='50%'
+					height='50%'
+					stroke={aConfig.color}
+				/>
+			</SVGDraggable>
+		)
+
+		const bBracket = (
+			<SVGDraggable key="bBracket" onUpdate={(amount) => {
+				this.dragged('valueB', amount)
+			}}>
+				<SVGBracketLabel
+					text={`${bConfig.valueDisplay}`}
+					leftPct={bConfig.leftPct}
+					rightPct={bConfig.leftPct + bConfig.padPct}
+					y='50%'
+					height='50%'
+					stroke={bConfig.color}
+				/>
+			</SVGDraggable>
+		)
 
 		return (
 			<svg id={id}
 				ref={this.svgRef}
 				height={100}
 				width="100%"
-				ref={this.svgRef}
 				style={debugStyle}
 			>
 				<SVGLinearCells
 					height='50%'
 					cellTypes={cells}
 					fillColors={[offColor, aColor, bColor, bothColor]}
+					onDrag={({ cellType, ndx, amount }) => {
+						console.log(cellType, ndx, amount)
+						if (cellType == 1) {
+							this.dragged('valueA', amount)
+						} else if (cellType == 2) {
+							this.dragged('valueB', amount)
+						} else if (cellType == 3) {
+							if (self.state.lastDraggedType == 1) {
+								this.dragged('valueA', amount)
+							} else if (self.state.lastDraggedType == 2) {
+								this.dragged('valueB', amount)
+							}
+						}
+					}}
 				/>
+				{this.state.lastDraggedType == 1 ? (
+					<React.Fragment>
+						{bBracket}
+						{aBracket}
+					</React.Fragment>
+				) : (
+						<React.Fragment>
+							{aBracket}
+							{bBracket}
+						</React.Fragment>
+					)}
 
-				<SVGDraggable onUpdate={(amount) => {
-					onUpdate({
-						valueA: Math.max(Math.min(valueA + amount * scalar, maxValue), minValue)
-					})
+
+				{/* <SVGDraggable onUpdate={(amount) => {
+					this.dragged('valueA', amount)
 				}}>
 					<SVGBracketLabel
-						text={`${valueADisplay}`}
-						leftPct={aLeftPct}
-						rightPct={aLeftPct + aPadPct}
+						text={`${aConfig.valueDisplay}`}
+						leftPct={aConfig.leftPct}
+						rightPct={aConfig.leftPct + aConfig.padPct}
 						y='50%'
 						height='50%'
-						stroke={aColor}
+						stroke={aConfig.color}
 					/>
 				</SVGDraggable>
 				<SVGDraggable onUpdate={(amount) => {
-					onUpdate({
-						valueB: Math.max(Math.min(valueB + amount * scalar, maxValue), minValue)
-					})
+					this.dragged('valueB', amount)
 				}}>
 					<SVGBracketLabel
-						text={`${valueBDisplay}`}
-						leftPct={bLeftPct}
-						rightPct={bLeftPct + bPadPct}
+						text={`${bConfig.valueDisplay}`}
+						leftPct={bConfig.leftPct}
+						rightPct={bConfig.leftPct + bConfig.padPct}
 						y='50%'
 						height='50%'
-						stroke={bColor}
+						stroke={bConfig.color}
 					/>
-				</SVGDraggable>
+				</SVGDraggable> */}
 			</svg >
 		)
 	}

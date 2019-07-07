@@ -31,11 +31,16 @@ function SVGBracketLabel(props) {
 	const rightXStr = `${100 * rightPct}%`
 
 	return (
-		<svg width={width} height={height} x={x} y={y}>
-			<text x={targetPointXStr} y={targetPointYStr} textAnchor='middle' alignmentBaseline='text-before-edge'>{text}</text>
-			<line x1={leftXStr} y1='0%' x2={targetPointXStr} y2={targetPointYStr} stroke={stroke} />
-			<line x1={rightXStr} y1='0%' x2={targetPointXStr} y2={targetPointYStr} stroke={stroke} />
-		</svg >
+		<g>
+			<svg width={width} height={height} x={x} y={y} preserveAspectRatio="none" viewBox="0 0 1 1">
+				<polygon points={`${leftPct} 0 ${targetPointX * 0.99} 1 ${targetPointX / 0.99} 1 ${rightPct} 0`} fill="black" opacity="0.0" />
+			</svg >
+			<svg width={width} height={height} x={x} y={y} pointerEvents="none">
+				<text x={targetPointXStr} y={targetPointYStr} textAnchor='middle' alignmentBaseline='text-before-edge' pointerEvents="none">{text}</text>
+				<line x1={leftXStr} y1='0%' x2={targetPointXStr} y2={targetPointYStr} stroke={stroke} />
+				<line x1={rightXStr} y1='0%' x2={targetPointXStr} y2={targetPointYStr} stroke={stroke} />
+			</svg >
+		</g>
 	)
 }
 
