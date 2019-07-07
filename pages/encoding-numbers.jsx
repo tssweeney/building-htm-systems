@@ -326,20 +326,23 @@ class EncodingNumbers extends React.Component {
             </h3>
 					</div>
 
-					{/* <figure className="figure">
+					<figure className="figure">
 						<DiscreteEncodingDiagram
 							id="discreteEncoding"
 							diagramWidth={500}
 							w={this.state.w}
+							n={this.state.categoryLength * this.state.w}
+							maxValue={this.state.categoryLength - 1}
+							minValue={0}
 							categoryLength={this.state.categoryLength}
-							valueA={this.state.valueC}
-							valueB={this.state.valueC}
-							onUpdate={value => this.setState({ valueC: Object.values(value)[0] })}
+							valueA={this.state.valueA}
+							valueB={this.state.valueB}
+							onUpdate={value => this.setState(value)}
 						/>
 						<figcaption class="figure-caption">
 							<span><a href="#discreteEncoding">¶</a>Figure 9:</span> By limiting the input to discrete values and making <code>n</code> an even multiple of <code>w</code>, it is easy to encode discrete scalar values with a <code>CyclicScalarEncoder</code>.
 						</figcaption>
-					</figure> */}
+					</figure>
 
 					{ParameterCategoryLength}
 

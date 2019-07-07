@@ -24,10 +24,10 @@ class ScalarOverlap extends React.Component {
 		}
 
 		this.dragged = this.dragged.bind(this)
+		this.resetEncoder = this.resetEncoder.bind(this)
 	}
 
 	dragged(key, amount) {
-		console.log(key, amount)
 		const {
 			valueA, valueB, minValue, maxValue, onUpdate
 		} = this.props
@@ -47,29 +47,50 @@ class ScalarOverlap extends React.Component {
 		}
 	}
 
-	render() {
-		const self = this
+	resetEncoder() {
 		const {
-			minValue, maxValue, n, w, id, valueA, valueB
+			minValue, maxValue, n, w, valueA, valueB
 		} = this.props
-
+		const encoder = new ScalarEncoder({ min: minValue, max: maxValue, w, n })
 		const aValueDisplay = valueA.toFixed(1)
 		const bValueDisplay = valueB.toFixed(1)
 
-		const encoder = new ScalarEncoder({ min: minValue, max: maxValue, w, n })
 		const encodingA = encoder.encode(aValueDisplay)
 		const encodingB = encoder.encode(bValueDisplay)
+
+		return {
+			aValueDisplay,
+			encodingA,
+			bValueDisplay,
+			encodingB
+		}
+	}
+
+	render() {
+		const self = this
+		const {
+			n, id, valueA, valueB
+		} = this.props
+
+		const {
+			aValueDisplay,
+			encodingA,
+			bValueDisplay,
+			encodingB
+		} = this.resetEncoder()
 
 		const aLeftPct = encodingA.indexOf(1) / n
 		const bLeftPct = encodingB.indexOf(1) / n
 		const aPadPct = encodingA.filter(item => item == 1).length / n
 		const bPadPct = encodingB.filter(item => item == 1).length / n
 
+		// console.log(encodingA)
+		// console.log(encodingA.indexOf(1), encodingA.filter(item => item == 1).length, n, aLeftPct, bLeftPct, aPadPct, bPadPct)
+
 		const cells = []
 		for (let i = 0; i < n; i++) {
 			cells.push(encodingA[i] + encodingB[i] * 2)
 		}
-
 
 		const aConfig = {
 			stateKey: 'valueA',
@@ -131,7 +152,6 @@ class ScalarOverlap extends React.Component {
 					cellTypes={cells}
 					fillColors={[offColor, aColor, bColor, bothColor]}
 					onDrag={({ cellType, ndx, amount }) => {
-						console.log(cellType, ndx, amount)
 						if (cellType == 1) {
 							this.dragged('valueA', amount)
 						} else if (cellType == 2) {
@@ -157,38 +177,12 @@ class ScalarOverlap extends React.Component {
 						</React.Fragment>
 					)}
 
-
-				{/* <SVGDraggable onUpdate={(amount) => {
-					this.dragged('valueA', amount)
-				}}>
-					<SVGBracketLabel
-						text={`${aConfig.valueDisplay}`}
-						leftPct={aConfig.leftPct}
-						rightPct={aConfig.leftPct + aConfig.padPct}
-						y='50%'
-						height='50%'
-						stroke={aConfig.color}
-					/>
-				</SVGDraggable>
-				<SVGDraggable onUpdate={(amount) => {
-					this.dragged('valueB', amount)
-				}}>
-					<SVGBracketLabel
-						text={`${bConfig.valueDisplay}`}
-						leftPct={bConfig.leftPct}
-						rightPct={bConfig.leftPct + bConfig.padPct}
-						y='50%'
-						height='50%'
-						stroke={bConfig.color}
-					/>
-				</SVGDraggable> */}
 			</svg >
 		)
 	}
 }
 
 ScalarOverlap.propTypes = {
-	diagramWidth: PropTypes.number.isRequired,
 	id: PropTypes.string.isRequired,
 	maxValue: PropTypes.number.isRequired,
 	minValue: PropTypes.number.isRequired,

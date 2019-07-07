@@ -6,15 +6,37 @@ const CategoryEncoder = simplehtm.encoders.CategoryEncoder
 
 class DiscreteEncodingDiagram extends ScalarOverlap {
 
+	// resetEncoder() {
+	// 	const {
+	// 		categoryLength, w
+	// 	} = this.props
+	// 	this.encoder = new CategoryEncoder({
+	// 		w: w, categories: [...Array(categoryLength).keys()]
+	// 	})
+	// 	this.encodingA = this.encoder.encode(this.valueA)
+	// 	this.encodingB = this.encoder.encode(this.valueB)
+	// }
+
 	resetEncoder() {
 		const {
-			categoryLength, w
+			categoryLength, w, valueA, valueB
 		} = this.props
-		this.encoder = new CategoryEncoder({
+
+		const encoder = new CategoryEncoder({
 			w: w, categories: [...Array(categoryLength).keys()]
 		})
-		this.encodingA = this.encoder.encode(this.valueA)
-		this.encodingB = this.encoder.encode(this.valueB)
+		const aValueDisplay = valueA.toFixed(0)
+		const bValueDisplay = valueB.toFixed(0)
+
+		const encodingA = encoder.encode(parseInt(aValueDisplay))
+		const encodingB = encoder.encode(parseInt(bValueDisplay))
+
+		return {
+			aValueDisplay,
+			encodingA,
+			bValueDisplay,
+			encodingB
+		}
 	}
 
 }
